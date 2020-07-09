@@ -5,7 +5,7 @@ import pandas as pd
 import threading
 
 THRESH_SCORE = 0.6
-classifier_model = tf.keras.models.load_model('models/CardClassifier.h5')
+classifier_model = tf.keras.models.load_model('models/CardClassifier_own_dataset.h5')
 bbox_model = tf.keras.models.load_model('models/BoundingBox_Locator.h5',
                                         custom_objects={'leaky_relu': tf.nn.leaky_relu})
 

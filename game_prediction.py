@@ -1,5 +1,5 @@
 import math
-
+import numpy as np
 
 class Predictor:
     available_cards = ['Ah', 'Kh', 'Qh', '10h', '9h', '8h', '7h', '6h', '5h', '4h', '3h', '2h',
@@ -13,7 +13,7 @@ class Predictor:
     def __init__(self):
         self.handcards = []
         self.dealercards = []
-        self.handvalues = []
+        self.handvalues = np.zeros(1)
         self.handpositions = []
 
 
@@ -23,6 +23,8 @@ class Predictor:
         self.dealercards = []
 
     def update(self, boxes, labels):
+        if not labels:
+            return
         for card in labels:
             if card in self.available_cards:
                 self.seen_cards.append(card)
@@ -31,49 +33,53 @@ class Predictor:
 
     def set_hand_and_dealercards(self, boxes, labels):
         for i in range(len(boxes)):
-            if boxes[i][0][0] < 200: # TODO: find out until which pixel the dealer cards lay
+            if boxes[i][0] < 20: # TODO: find out until which pixel the dealer cards lay
                 self.dealercards.append(labels[i])
                 break
         distances = []
         for i in range(len(boxes)):
             if i+1 < len(boxes):
-                distances.append(math.sqrt(math.pow(boxes[i+1][0][0]-boxes[i][0][0], 2) +
-                                       math.pow(boxes[i+1][0][1]-boxes[i][0][1], 2)))
+                distances.append(math.sqrt(math.pow(boxes[i+1][0]-boxes[i][0], 2) +
+                                       math.pow(boxes[i+1][1]-boxes[i][1], 2)))
             else:
-                distances.append(math.sqrt(math.pow(boxes[i][0][0]-boxes[0][0][0], 2) +
-                                       math.pow(boxes[i][0][1]-boxes[0][0][1], 2)))
+                distances.append(math.sqrt(math.pow(boxes[i][0]-boxes[0][0], 2) +
+                                       math.pow(boxes[i][1]-boxes[0][1], 2)))
+        print(distances)
         for i in range(len(distances)):
             if distances[i] < 100: # TODO: find out with which distance two cards belong in one hand
                 if i+1 < len(labels):
                     self.handcards.append([labels[i], labels[i+1]])
-                    self.handpositions.append([boxes[i][0][0], boxes[i][0][1], boxes[i+1][0][2], boxes[i+1][0][3]])
+                    self.handpositions.append([boxes[i][0], boxes[i][1], boxes[i+1][2], boxes[i+1][3]])
                 else:
                     self.handcards.append([labels[i], labels[0]])
-                    self.handpositions.append([boxes[i][0][0], boxes[i][0][1], boxes[0][0][2], boxes[0][0][3]])
+                    self.handpositions.append([boxes[i][0], boxes[i][1], boxes[0][2], boxes[0][3]])
 
     def predict_winning_loosing(self, player_id):
+        if player_id >= len(self.handcards):
+            print('player not found!')
+            return -1, -1, []
         hand = self.handcards[player_id]
         handvalue = 0
         for card in hand:
             for key in self.card_values:
                 if key in card:
-                    handvalue += self.card_values[card]
+                    handvalue += self.card_values[card[:-1]]
                     break
-        handvalue[player_id] = handvalue
+        self.handvalues[player_id] = handvalue
+        #print(hand)
+        #print(handvalue)
         cards_smaller_21 = []
         cards_greater_21 = []
         for card in self.available_cards:
-            for key in self.card_values:
-                if key in card:
-                    if handvalue + self.card_values[key] <= 21:
-                        cards_smaller_21.append(card)
-                        break
-                    else:
-                        cards_greater_21.append(card)
-                        break
+            key = card[:-1]
+            if key in card:
+                if handvalue + self.card_values[key] <= 21:
+                    cards_smaller_21.append(card)
+                else:
+                    cards_greater_21.append(card)
         smaller_21 = len(cards_smaller_21)
         greater_21 = len(cards_greater_21)
         num_cards = len(self.available_cards) + len(self.seen_cards)
-        win_chance = smaller_21/num_cards
-        loose_chance = greater_21/num_cards
+        win_chance = round((smaller_21/num_cards)*100)
+        loose_chance = round((greater_21/num_cards)*100)
         return win_chance, loose_chance, self.handpositions[player_id]
