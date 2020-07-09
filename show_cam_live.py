@@ -52,7 +52,6 @@ def show_webcam(mirror=False):
         bboxes = pred_thread.boxes
         classes = pred_thread.labels
         if not old_classes == classes:
-            print("Update")
             predictor.update(bboxes, classes)
             for i in range(num_players):
                 win_chance, loose_chance, position = predictor.predict_winning_loosing(i)
@@ -62,8 +61,8 @@ def show_webcam(mirror=False):
         #img = draw_bounding_box(img, bboxes)
         #img = show_class(img, classes, bboxes)
         draw_detections(img, bboxes, classes)
-        img = cv2.line(img, (320,0), (320,480), (255,0,0), thickness=2)
-        img = cv2.line(img, (0,240), (640,240), (255,0,0), thickness=2)
+        img = cv2.line(img, (320,0), (320,HEIGHT), (255,0,0), thickness=2)
+        img = cv2.line(img, (0,240), (WIDTH,240), (255,0,0), thickness=2)
         frame += 1
 
         cv2.imshow('my webcam', img)
@@ -72,28 +71,11 @@ def show_webcam(mirror=False):
     cv2.destroyAllWindows()
 
 
-
-
-
-
 def show_chance(image, position, win, loose):
     cv2.putText(image, str(win), (round(position[0]), round(position[1])), cv2.FONT_HERSHEY_COMPLEX,
                 1, (0, 255, 0), 2)  # green color
     cv2.putText(image, str(loose), (round(position[2]), round(position[3])), cv2.FONT_HERSHEY_COMPLEX,
                 1, (0, 0, 255), 2)  # red color
-    return image
-
-
-def show_class(image, cards, bboxes):
-    for i in range(len(cards)):
-        cv2.putText(image, cards[i], (round(bboxes[i][0][0]), round(bboxes[i][0][1])), cv2.FONT_HERSHEY_COMPLEX,
-                    1, (255, 255, 255), 2)
-    return image
-
-
-def draw_bounding_box(image, bboxes):
-    for bbox in bboxes:
-        image = cv2.rectangle(image, (bbox[0][0], bbox[0][1]), (bbox[0][2], bbox[0][3]), (255, 0, 0), 2)
     return image
 
 
