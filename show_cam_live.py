@@ -19,7 +19,6 @@ labels_to_names = pd.read_csv(
 ).to_dict()[1]
 predictor = game_prediction.Predictor()
 
-
 def show_webcam(mirror=False):
     frame_cnt = 0
     cam = cv2.VideoCapture(1)   # 0 for build in cam, 1 for usb cam
@@ -48,6 +47,18 @@ def show_webcam(mirror=False):
             win_chance, loose_chance, position = predictor.predict_winning_loosing(i)
             img = show_chance(img, position, win_chance, loose_chance)
         # print(np.shape(img))
+
+        if frame > 100:
+            t = Thread(target=pred_thread.run, args=(img,))
+            t.start()
+            print("new prediction")
+            frame = 0
+        bboxes = pred_thread.boxes
+        classes = pred_thread.labels
+        img = draw_bounding_box(img, bboxes)
+        img = show_class(img, classes, bboxes)
+        #draw_detections(img, bboxes, classes)
+        frame += 1
 
         cv2.imshow('my webcam', img)
         frame_cnt += 1
