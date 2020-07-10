@@ -1,6 +1,7 @@
 from player import Player
 import cv2
 import numpy as np
+from collections import Counter
 
 class GameManager:
 
@@ -9,6 +10,9 @@ class GameManager:
         self.players = []
         self.half_width = VID_WIDTH / 2
         self.half_height = VID_HEIGHT / 2
+        self.card_buffer = {}
+        self.buffer_counter = 0
+        self.card_margin = 5 # distance card refers to same box in next frame 
 
         for i in range(self.num_players):
             if i == 1:
@@ -44,8 +48,47 @@ class GameManager:
             player_num = 3
         return player_num
 
+    
+    def buffer_cards(self, boxes, labels):
+        new_boxes = []
+        new_labels = []
+
+        for i in range(len(labels)):
+            box = boxes[i]
+            x = box[0]# + (box[2] - box[0])/2 # Width direction
+            y = box[1]# + (box[3] - box[1])/2 # Height direction
+
+            buffer_key = -1
+            for key in self.card_buffer.keys():
+                ref_x, ref_y = self.card_buffer[key]['center_box']
+                if abs(x - ref_x) < self.card_margin and abs(y - ref_y) < self.card_margin: # find card box in buffer of cards
+                    buffer_key = key
+                    break
+            
+            if buffer_key == -1: # card not in buffer
+                l = ['0'] * 5 # init labels array with [0,0,0,0,0]
+                l[0] = labels[i] # first elem is actual label
+                self.card_buffer[self.buffer_counter] = {'center_box': (x, y), 'found_labels': l, 'counter': 1}
+                self.buffer_counter += 1
+            else: # found card, update center box and label array 
+                card_b = self.card_buffer[buffer_key]
+                l = card_b['found_labels']
+                l[card_b['counter']] = labels[i] # add new found label
+                c = (card_b['counter'] + 1) % 5 # add 1 to counter for found labels, but in range [0,5]
+                self.card_buffer[buffer_key] = {'center_box': (x, y), 'found_labels': l, 'counter': c}
+
+                occurence = Counter(l) # how often occures each label for this box
+                for elem in occurence:
+                    if occurence[elem] > 2 and not elem == '0': # if the same label was detected 3 or more times for this box
+                        new_labels.append(elem) # append the max label
+                        new_boxes.append(box) # and append the corresponding box
+                        break
+        return new_boxes, new_labels
+
+
 
     def update(self, boxes, labels):
+        boxes, labels = self.buffer_cards(boxes, labels)
         for i in range(len(labels)):
             if labels[i] in self.available_cards:
                 self.available_cards.remove(labels[i]) # card not available anymore

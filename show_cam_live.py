@@ -31,8 +31,7 @@ def show_webcam(mirror=False):
     pred_thread = predictThread()
     bboxes = []
     classes = []
-    old_classes = []
-    frame = 100
+    frame = 0
     win_chance = -1
     loose_chance = -1
     position = []
@@ -45,19 +44,20 @@ def show_webcam(mirror=False):
         if mirror:
             img = cv2.flip(img, 1)
 
-        if frame > 60:
+        if frame > 100:
             t = Thread(target=pred_thread.run, args=(img,))
             t.start()
+            Manager.update(bboxes, classes)
             #dprint("new prediction")
             frame = 0
         bboxes = pred_thread.boxes
         classes = pred_thread.labels
-        if not old_classes == classes:
-            Manager.update(bboxes, classes)
+        #if not old_classes == classes:
+        #    Manager.update(bboxes, classes)
         #    predictor.update(bboxes, classes)
         #    for i in range(num_players):
         #        win_chance, loose_chance, position = predictor.predict_winning_loosing(i)
-            old_classes = classes
+        #    old_classes = classes
         #if win_chance > -1:
         #    img = show_chance(img, position, win_chance, loose_chance)
         #img = draw_bounding_box(img, bboxes)
