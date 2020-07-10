@@ -9,7 +9,7 @@ import threading
 #from predict_cards import predict_box, show_class, draw_bounding_box#, predictThread # , predict_image
 from predict_cards_RetNet import draw_detections, predict_image, predictThread, predict_cropped
 import game_prediction
-
+from game_manager import GameManager
 
 THRESH_SCORE = 0.6
 
@@ -21,6 +21,7 @@ labels_to_names = pd.read_csv(
   index_col=0
 ).to_dict()[1]
 predictor = game_prediction.Predictor()
+Manager = GameManager(640, 480)
 
 def show_webcam(mirror=False):
     cam = cv2.VideoCapture(1)   # 0 for build in cam, 1 for usb cam
@@ -52,14 +53,16 @@ def show_webcam(mirror=False):
         bboxes = pred_thread.boxes
         classes = pred_thread.labels
         if not old_classes == classes:
-            predictor.update(bboxes, classes)
-            for i in range(num_players):
-                win_chance, loose_chance, position = predictor.predict_winning_loosing(i)
+            Manager.update(bboxes, classes)
+        #    predictor.update(bboxes, classes)
+        #    for i in range(num_players):
+        #        win_chance, loose_chance, position = predictor.predict_winning_loosing(i)
             old_classes = classes
-        if win_chance > -1:
-            img = show_chance(img, position, win_chance, loose_chance)
+        #if win_chance > -1:
+        #    img = show_chance(img, position, win_chance, loose_chance)
         #img = draw_bounding_box(img, bboxes)
         #img = show_class(img, classes, bboxes)
+        img = Manager.show_chance(img)
         draw_detections(img, bboxes, classes)
         img = cv2.line(img, (320,0), (320,HEIGHT), (255,0,0), thickness=2)
         img = cv2.line(img, (0,240), (WIDTH,240), (255,0,0), thickness=2)

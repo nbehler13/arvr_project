@@ -24,7 +24,6 @@ labels_to_names = pd.read_csv(
   index_col=0
 ).to_dict()[1]
 
-scale_factor = 0
 
 THRES_SCORE = 0.6
 def draw_detections(image, boxes, labels):
@@ -74,6 +73,7 @@ def predict_box_resnet(image):
 
     boxes, labels = predict_labels_resnet(image, boxes, scores)
     boxes /= scale
+    #print(scale) # 1.6666666666666
     return boxes, labels
 
 
@@ -88,7 +88,6 @@ class predictThread():
 
 
 def predict_image(filepath):
-    global scale_factor
     img = cv2.imread(filepath)
     boxes, classes = predict_box_resnet(img)
     draw = img.copy()
