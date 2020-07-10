@@ -13,10 +13,20 @@ class Player:
                    '6': 6, '5': 5, '4': 4, '3': 3, '2': 2}
 
 
-    def get_new_card(self, label):
-        if not label in self.handcards:
-            self.handcards.append(label)
-            self.handvalue += self.card_values[label[:-1]]
+    def get_new_cards(self, boxes, labels):
+        self.handcards = labels
+        self.handvalue = 0
+        for handcard in self.handcards:
+            self.handvalue += self.card_values[handcard[:-1]]
+        
+        x_max = 0 # show win chance at upper right box
+        y_min = 2000
+        for box in boxes:
+            if x_max < box[2]:
+                x_max = box[2]
+            if y_min > box[1]:
+                y_min = box[1]
+        self.show_pos = (int(x_max), int(y_min))
 
 
     def predict_winning(self, available_cards):

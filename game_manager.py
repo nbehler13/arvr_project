@@ -89,14 +89,18 @@ class GameManager:
 
     def update(self, boxes, labels):
         boxes, labels = self.buffer_cards(boxes, labels)
+        new_player_cards = [[] for _ in range(self.num_players)] # create [[], [], [], []]
+        new_player_boxes = [[] for _ in range(self.num_players)]
         for i in range(len(labels)):
             if labels[i] in self.available_cards:
                 self.available_cards.remove(labels[i]) # card not available anymore
             player_num = self.get_player_to_box(boxes[i]) # this card belongs to which player?
-            self.players[player_num].get_new_card(labels[i]) # assign the card to the corresponding player
+            new_player_cards[player_num].append(labels[i])
+            new_player_boxes[player_num].append(boxes[i])
 
-        for player in self.players:
-            player.predict_winning(self.available_cards) # calculate the win chances for each player
+        for i in range(len(self.players)):
+            self.players[i].get_new_cards(new_player_boxes[i], new_player_cards[i]) # assign the card to the corresponding player
+            self.players[i].predict_winning(self.available_cards) # calculate the win chances for each player
             
 
     def show_chance(self, image):
@@ -105,10 +109,10 @@ class GameManager:
             if win > -1:
                 x, y = player.show_pos
                 cv2.putText(image, str(win), (x, y), cv2.FONT_HERSHEY_COMPLEX,
-                    fontScale=1, color=(0, 255, 0), thickness=1)  # green color
-                cv2.putText(image, str(100-win), (x, y+20), cv2.FONT_HERSHEY_COMPLEX,
-                    fontScale=1, color=(0, 0, 255), thickness=1)  # red color
+                    fontScale=0.8, color=(0, 255, 0), thickness=1)  # green color
+                cv2.putText(image, str(100-win), (x, y+25), cv2.FONT_HERSHEY_COMPLEX,
+                    fontScale=0.8, color=(0, 0, 255), thickness=1)  # red color
 
             cv2.putText(image, "{}: {}".format(player.player_name, player.handvalue), player.name_pos, cv2.FONT_HERSHEY_COMPLEX,
-                fontScale=1, color=(255, 255, 0), thickness=2)  # red color
+                fontScale=1, color=(255, 255, 0), thickness=2)  # show playername and handvalue
         return image
