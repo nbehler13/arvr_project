@@ -14,7 +14,8 @@ class Player:
 
 
     def get_new_cards(self, boxes, labels):
-        self.handcards = labels
+        #self.handcards = labels
+        self.handcards = list(dict.fromkeys(labels))
         self.handvalue = 0
         for handcard in self.handcards:
             self.handvalue += self.card_values[handcard[:-1]]

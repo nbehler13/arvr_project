@@ -8,8 +8,8 @@ class GameManager:
     def __init__(self, VID_WIDTH, VID_HEIGHT):
         self.num_players = 4
         self.players = []
-        self.half_width = VID_WIDTH / 2
-        self.half_height = VID_HEIGHT / 2
+        self.half_width = VID_WIDTH // 2
+        self.half_height = VID_HEIGHT // 2
         self.card_buffer = {}
         self.buffer_counter = 0
         self.card_margin = 5 # distance card refers to same box in next frame 
@@ -17,16 +17,16 @@ class GameManager:
         for i in range(self.num_players):
             if i == 1:
                 pos = (350, 60)
-                name_pos = (400, 40)
+                name_pos = (self.half_width+250, 50)
             elif i == 2:
                 pos = (350, 350)
-                name_pos = (400, 280)
+                name_pos = (self.half_width+250, self.half_height+50)
             elif i == 3:
                 pos = (20, 350)
-                name_pos = (80, 280)
+                name_pos = (250, self.half_height+50)
             else:
                 pos = (20, 60)
-                name_pos = (80, 40)
+                name_pos = (250, 50)
             self.players.append(Player(i, pos, name_pos)) # instance of player 0, player 1, ..., player num_players
 
         self.available_cards = ['ah', 'kh', 'qh', 'jh', '10h', '9h', '8h', '7h', '6h', '5h', '4h', '3h', '2h',
@@ -84,7 +84,6 @@ class GameManager:
                         new_boxes.append(box) # and append the corresponding box
                         break
         return new_boxes, new_labels
-
 
 
     def update(self, boxes, labels):
