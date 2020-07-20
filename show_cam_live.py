@@ -21,7 +21,7 @@ WIDTH = 1280#1920
 HEIGHT = 720#1080
 Manager = GameManager(WIDTH, HEIGHT)
 
-url = "http://192.168.178.46:8080/shot.jpg"
+url = "http://192.168.1.19:8080/shot.jpg"
 
 
 def show_webcam(mirror=False):
@@ -32,6 +32,7 @@ def show_webcam(mirror=False):
     pred_thread = predictThread()
     bboxes = []
     classes = []
+    confis = []
     frame = 0
     cv2.namedWindow('webcam', cv2.WINDOW_NORMAL)
     cv2.resizeWindow('webcam', WIDTH, HEIGHT)
@@ -44,18 +45,19 @@ def show_webcam(mirror=False):
         if mirror:
             img = cv2.flip(img, 1)
 
-        if frame > 10:
+        if frame > 30:
             t = Thread(target=pred_thread.run, args=(img,))
             t.start()
-            Manager.update(bboxes, classes)
-            #dprint("new prediction")
+            Manager.update(bboxes, classes, confis)
+            #print("new prediction")
             frame = 0
         bboxes = pred_thread.boxes
         classes = pred_thread.labels
+        confis = pred_thread.confis
         img = Manager.show_chance(img)
-        draw_detections(img, bboxes, classes)
-        img = cv2.line(img, (WIDTH//2,0), (WIDTH//2,HEIGHT), (255,0,0), thickness=2)
-        img = cv2.line(img, (0,HEIGHT//2), (WIDTH,HEIGHT//2), (255,0,0), thickness=2)
+        draw_detections(img, bboxes, classes, confis)
+        #img = cv2.line(img, (WIDTH//2,0), (WIDTH//2,HEIGHT), (255,0,0), thickness=2)
+        #img = cv2.line(img, (0,HEIGHT//2), (WIDTH,HEIGHT//2), (255,0,0), thickness=2)
         frame += 1
         cv2.imshow('webcam', img)
         if cv2.waitKey(1) == 27:

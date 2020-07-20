@@ -7,7 +7,7 @@ class Player:
         self.handvalue = 0
         self.show_pos = pos
         self.name_pos = name_pos
-        self.handpositions = []
+        #self.handpositions = []
         self.win_chance = -1
         self.card_values = {'a': 1, 'k': 10, 'q': 10, 'j': 10, '10': 10, '9': 9, '8': 8, '7': 7,
                    '6': 6, '5': 5, '4': 4, '3': 3, '2': 2}
@@ -19,7 +19,12 @@ class Player:
         self.handvalue = 0
         for handcard in self.handcards:
             self.handvalue += self.card_values[handcard[:-1]]
-        
+
+        for handcard in self.handcards:
+            if 'a' in handcard and self.handvalue - 1 < 11:
+                self.handvalue += 10 ## count ace as 11
+                break
+
         x_max = 0 # show win chance at upper right box
         y_min = 2000
         for box in boxes:
@@ -38,7 +43,7 @@ class Player:
             key = avail_card[:-1]
             value = self.card_values[key] # get card value
             if value + self.handvalue <= 21:
-                amount_smaller_cards +=1 # add all cards that can be drawn
+                amount_smaller_cards += 1 # add all cards that can be drawn
         #print("{}: {}".format(self.player_name, self.handcards))
         win_chance = amount_smaller_cards/len(available_cards)
         self.win_chance = round(win_chance*100)

@@ -12,7 +12,7 @@ from keras_retinanet_master.keras_retinanet.utils.image import read_image_bgr, p
 from keras_retinanet_master.keras_retinanet.utils.visualization import draw_box, draw_caption
 
 THRESH_SCORE = 0.6
-classifier_model = tf.keras.models.load_model('models/CardClassifier_sobel_drop.h5')
+classifier_model = tf.keras.models.load_model('models/CardClassifier_SGD.h5')
 
 pretrained_path = 'models/resnet50_own_dataset_20.h5'
 RetNet_model = retmodels.load_model(pretrained_path, backbone_name='resnet50')
@@ -26,17 +26,15 @@ labels_to_names = pd.read_csv(
 
 
 THRES_SCORE = 0.6
-def draw_detections(image, boxes, labels):
+def draw_detections(image, boxes, labels, confis):
     if boxes == []:
         return
-    for box, label in zip(boxes, labels):
+    for box, label, confi in zip(boxes, labels, confis):
         color = [0, 255, 0]
         b = box.astype(int)
         draw_box(image, b, color=color)
 
-        caption = "{}".format(label)
-        #draw_caption(image, b, caption)
-        #b = np.array(box).astype(int)
+        caption = "{}: {}".format(label, confi)
         cv2.putText(image, caption, (b[0], b[1] - 10), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
         cv2.putText(image, caption, (b[0], b[1] - 10), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 1)
 
@@ -68,13 +66,13 @@ def predict_labels_resnet(img, boxes, scores):
         prediction = classifier_model.predict(crop)
 
         idx = np.argmax(prediction)%52
-        confis.append(prediction[0][idx])
+        confis.append(round(float(prediction[0][idx]), 2))
         for key, value in labels_to_names.items():
             if value == idx:
                 labels.append(key)
                 break
     boxes = boxes[0,:len(labels),:]
-    return boxes, labels#, confis
+    return boxes, labels, confis
 
 
 def predict_box_resnet(image):
@@ -83,19 +81,20 @@ def predict_box_resnet(image):
     image = np.expand_dims(image, axis=0)
     boxes, scores, labels = RetNet_model.predict_on_batch(image)
 
-    boxes, labels = predict_labels_resnet(image, boxes, scores)
+    boxes, labels, confis = predict_labels_resnet(image, boxes, scores)
     boxes /= scale
     #print(scale) # 1.6666666666666
-    return boxes, labels
+    return boxes, labels, confis
 
 
 class predictThread():
    def __init__(self):
         self.boxes = []
         self.labels = []
+        self.confis = []
 
    def run(self, img):
-        self.boxes, self.labels = predict_box_resnet(img)
+        self.boxes, self.labels, self.confis = predict_box_resnet(img)
 
 
 
