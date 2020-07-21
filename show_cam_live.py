@@ -55,7 +55,7 @@ def show_webcam(mirror=False):
         classes = pred_thread.labels
         confis = pred_thread.confis
         img = Manager.show_chance(img)
-        draw_detections(img, bboxes, classes, confis)
+        #draw_detections(img, bboxes, classes, confis)
         #img = cv2.line(img, (WIDTH//2,0), (WIDTH//2,HEIGHT), (255,0,0), thickness=2)
         #img = cv2.line(img, (0,HEIGHT//2), (WIDTH,HEIGHT//2), (255,0,0), thickness=2)
         frame += 1
