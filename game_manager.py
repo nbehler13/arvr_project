@@ -107,7 +107,7 @@ class GameManager:
     def show_chance(self, image):
         for player in self.players:
             x, y = player.show_pos
-            cv2.putText(image, "{}: {}({})".format(player.player_name, player.handvalue, player.handcards), (x, y), cv2.FONT_HERSHEY_COMPLEX,
+            cv2.putText(image, "{}: {}".format(player.player_name, player.handvalue), (x, y), cv2.FONT_HERSHEY_COMPLEX,
                 fontScale=1, color=(255, 255, 0), thickness=2)  # show playername and handvalue
             cv2.putText(image, "{}".format(player.handcards), (x, y+30), cv2.FONT_HERSHEY_COMPLEX,
                 fontScale=1, color=(255, 255, 0), thickness=2)  # show player handcards
@@ -117,4 +117,7 @@ class GameManager:
                     fontScale=0.9, color=(0, 255, 0), thickness=1)  # green color
                 cv2.putText(image, str(100-win), (x, y+90), cv2.FONT_HERSHEY_COMPLEX,
                     fontScale=0.9, color=(0, 0, 255), thickness=1)  # red color
+            if player.handvalue == 21:
+                cv2.putText(image, "{} won!!!".format(player.player_name), (self.half_width, self.half_height), cv2.FONT_HERSHEY_COMPLEX,
+                    fontScale=1.2, color=(167, 231, 54), thickness=1)  # color
         return image
