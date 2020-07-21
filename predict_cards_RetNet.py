@@ -65,10 +65,10 @@ def predict_labels_resnet(img, boxes, scores):
         crop = crop.reshape(-1, 80, 80, 1)
         prediction = classifier_model.predict(crop)
 
-        idx = np.argmax(prediction)%52
-        confis.append(round(float(prediction[0][idx]), 2))
+        idx = np.argmax(prediction)
+        confis.append(round(float(prediction[int(idx/52)][idx%52]), 2))
         for key, value in labels_to_names.items():
-            if value == idx:
+            if value == idx%52:
                 labels.append(key)
                 break
     boxes = boxes[0,:len(labels),:]
