@@ -1,20 +1,17 @@
 
 class Player:
-    def __init__(self, player_num, pos, name_pos):
+    def __init__(self, player_num):
         self.player_num = player_num
         self.player_name = "Dealer" if player_num == 0 else "Player "+str(player_num)
         self.handcards = []
         self.handvalue = 0
-        self.show_pos = pos
-        self.name_pos = name_pos
-        #self.handpositions = []
+        self.show_pos = (0, 0)
         self.win_chance = -1
         self.card_values = {'a': 1, 'k': 10, 'q': 10, 'j': 10, '10': 10, '9': 9, '8': 8, '7': 7,
                    '6': 6, '5': 5, '4': 4, '3': 3, '2': 2}
 
 
     def get_new_cards(self, boxes, labels):
-        #self.handcards = labels
         self.handcards = list(dict.fromkeys(labels))
         self.handvalue = 0
         for handcard in self.handcards:

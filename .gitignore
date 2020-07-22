@@ -5,12 +5,5 @@ models/
 
 __pycache__/
 
-cardBoundingBox.py
-
 .vs/
 
-15.jpg
-
-test2.png
-
-test_rgb.png

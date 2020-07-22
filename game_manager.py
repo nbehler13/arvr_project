@@ -27,7 +27,7 @@ class GameManager:
             else:
                 pos = (20, 60)
                 name_pos = (250, 50)
-            self.players.append(Player(i, pos, name_pos)) # instance of player 0, player 1, ..., player num_players
+            self.players.append(Player(i)) # instance of player 0, player 1, ..., player num_players
 
         self.available_cards = ['ah', 'kh', 'qh', 'jh', '10h', '9h', '8h', '7h', '6h', '5h', '4h', '3h', '2h',
                                 'ac', 'kc', 'qc', 'jc', '10c', '9c', '8c', '7c', '6c', '5c', '4c', '3c', '2c',
@@ -89,7 +89,7 @@ class GameManager:
 
 
     def update(self, boxes, labels, confis):
-        #boxes, labels = self.buffer_cards(boxes, labels, confis)
+        boxes, labels = self.buffer_cards(boxes, labels, confis)
         new_player_cards = [[] for _ in range(self.num_players)] # create [[], [], [], []]
         new_player_boxes = [[] for _ in range(self.num_players)]
         for i in range(len(labels)):
@@ -118,8 +118,8 @@ class GameManager:
                 cv2.putText(image, str(100-win), (x, y+90), cv2.FONT_HERSHEY_COMPLEX,
                     fontScale=1, color=(0, 0, 255), thickness=1)  # red color
             if player.handvalue == 21:
-                text_width, _, _ = cv2.getTextSize("{} won!!!".format(player.player_name), cv2.FONT_HERSHEY_COMPLEX,
+                text_size, _ = cv2.getTextSize("{} won!!!".format(player.player_name), cv2.FONT_HERSHEY_COMPLEX,
                     fontScale=1.2, thickness=2)
-                cv2.putText(image, "{} won!!!".format(player.player_name), (self.half_width-text_width/2, self.half_height), cv2.FONT_HERSHEY_COMPLEX,
+                cv2.putText(image, "{} won!!!".format(player.player_name), (int(self.half_width-text_size[0]/2), self.half_height), cv2.FONT_HERSHEY_COMPLEX,
                     fontScale=1.2, color=(167, 231, 54), thickness=2)  # color
         return image

@@ -14,22 +14,23 @@ import pandas as pd
 import xml.etree.ElementTree as ET
 import io
 import os
+import sys
 import urllib
 import cv2
 import time
 from PIL import Image
 
 from tensorflow import keras
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Conv2D, Flatten, Dropout, MaxPooling2D, ZeroPadding2D, Activation, Add, BatchNormalization, AveragePooling2D
-from tensorflow.keras import regularizers, optimizers
+from keras.models import Sequential
+from keras.layers import Dense, Activation, Flatten, Dropout, BatchNormalization
+from keras.layers import Conv2D, MaxPooling2D
+from keras import regularizers, optimizers
 
 import seaborn as sns
 from pylab import rcParams
 import matplotlib.pyplot as plt
 from matplotlib import rc
 from pandas.plotting import register_matplotlib_converters
-from sklearn.utils import shuffle
 
 # %matplotlib inline
 # %config InlineBackend.figure_format='retina'
@@ -44,245 +45,129 @@ RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
 tf.random.set_seed(RANDOM_SEED)
 
-card_path = 'C:/Users/nickl/Pictures/card_dataset_cropped'
 snapshots_path = os.path.join(os.path.dirname(__file__), 'snapshots')
-BATCHSIZE = 16
-EPOCHS = 1
+
+BATCHSIZE = 64
+EPOCHS = 30
 IMG_SIZE = (80, 80)
 
-cropped_train_path = 'C:/Users/nickl/Pictures/card_dataset_cropped/'
+cropped_train_path = "classifier_train"
 
-
-def create_model():
-    model = Sequential([Conv2D(16, 3, activation='relu', input_shape=(80, 80, 1)),
-                        MaxPooling2D(),
-                        Dropout(0.3),
-                        Conv2D(32, 5, activation='relu'),
-                        MaxPooling2D(),
-                        Dropout(0.3),
-                        Conv2D(64, 3, activation='relu'),
-                        MaxPooling2D(),
-                        Dropout(0.3),
-                        Flatten(),
-                        #Dense(512, activation='relu'),
-                        Dense(52, activation='softmax')])
-
-activation_function = tf.nn.relu
-def create_resnet_model(num_of_layers=50):
-    inputs = tf.keras.Input(shape=(80, 80, 1))
-
-    block_2, block_3 = [4, 6]
-    if num_of_layers is 101:
-        block_2, block_3 = [4, 23]
-    elif num_of_layers is 152:
-        block_2, block_3 = [8, 36]
-
-
-    x = ZeroPadding2D((3, 3))(inputs)
-    x = Conv2D(64, (7, 7), strides=(2, 2))(x)
-    x = BatchNormalization(axis=3)(x)
-    x = Activation(activation_function)(x)
-    x = MaxPooling2D((3, 3), strides=(2, 2))(x)
-
-    x = conv_block(x, filters=[64, 64, 256], s=1)
-    for i in range(3):
-        x = id_block(x, [64, 64, 256])
-
-    x = conv_block(x, filters=[128, 128, 512])
-    for i in range(block_2):
-        x = id_block(x, [128, 128, 512])
-    
-    x = conv_block(x, filters=[256, 256, 1024])
-    for i in range(block_3):
-        x = id_block(x, [256, 256, 1024])
-
-    x = conv_block(x, filters=[512, 512, 2048])
-    for i in range(3):
-        x = id_block(x, [512, 512, 2048])
-
-    x = AveragePooling2D((2,2))(x)
-    x = Flatten()(x)
-    output = Dense(52, activation=tf.nn.softmax)(x)
-
-    res_net_model = tf.keras.Model(inputs, outputs=output)
-    return res_net_model
-
-
-def conv_block(input_data, filters, s=2):
-    f1, f2, f3 = filters
-
-    x = Conv2D(f1, (1, 1), strides=(s,s))(input_data)
-    x = BatchNormalization(axis = 3)(x)
-    x = Activation(activation_function)(x) 
-
-    x = Conv2D(f2, (3, 3), strides=(1,1), padding = 'same')(x)
-    x = BatchNormalization(axis = 3)(x)
-    x = Activation(activation_function)(x) 
-
-    x = Conv2D(f3, (1, 1), strides=(1,1), padding = 'valid')(x)
-    x = BatchNormalization(axis = 3)(x)
-
-    skip = Conv2D(f3, (1, 1), strides=(s,s), padding = 'valid')(input_data)
-    skip = BatchNormalization(axis = 3)(skip)
-
-    x = Add()([x, skip])
-    x = Activation(activation_function)(x) 
-
-    return x
-
-
-def id_block(input_data, filters):
-    f1, f2, f3 = filters
-
-    x = Conv2D(f1, (1, 1), strides=(1,1), padding='valid')(input_data)
-    x = BatchNormalization(axis = 3)(x)
-    x = Activation(activation_function)(x) 
-
-    x = Conv2D(f2, (3, 3), strides=(1,1), padding = 'same')(x)
-    x = BatchNormalization(axis = 3)(x)
-    x = Activation(activation_function)(x)
-
-    x = Conv2D(f3, (1, 1), strides=(1,1), padding = 'valid')(x)
-    x = BatchNormalization(axis = 3)(x)
-
-    x = Add()([x, input_data])
-    x = Activation(activation_function)(x) 
-
-    return x
-
-
-CLASSES_FILE = 'classes.csv'
+CLASSES_FILE = os.path.join(cropped_train_path, 'classes.csv')
 labels_to_names = pd.read_csv(
     CLASSES_FILE,
     header=None,
     index_col=0
 ).to_dict()[1]
 
-def setup_for_training():
+TRAIN_ANNOTATIONS_FILE = os.path.join(cropped_train_path, 'annotations_augmented.csv')
+trainDF = pd.read_csv(TRAIN_ANNOTATIONS_FILE, names=['image_name', 'class_name'])
 
-    TRAIN_ANNOTATIONS_FILE = os.path.join(cropped_train_path, 'annotations.csv')
-    trainDF = pd.read_csv(TRAIN_ANNOTATIONS_FILE, names=['image_name', 'class_name']) 
+datagen = keras.preprocessing.image.ImageDataGenerator(rescale=1./255, rotation_range=360,
+                                                       shear_range=15.0, horizontal_flip=False,
+                                                       vertical_flip=False)
+train_generator = datagen.flow_from_dataframe(
+    dataframe=trainDF,
+    x_col='image_name',
+    y_col='class_name',
+    class_mode='categorical',
+    target_size=IMG_SIZE,
+    batch_size=BATCHSIZE,
+    color_mode='grayscale',
+    shuffle=True
+)
 
+cropped_test_path = "./classifier_test"
 
-    # for i in range(len(trainDF)):
-    #     if i >= 3461:
-    #         if trainDF.loc[i, 'class_name'][0] in ['a', 'k', 'j']:
-    #             trainDF.drop(i, inplace=True)
-    #             i = i-1
+TEST_ANNOTATIONS_FILE = os.path.join(cropped_test_path, 'annotations.csv')
+testDF = pd.read_csv(TEST_ANNOTATIONS_FILE, names=['image_name', 'class_name'])
 
-    #print(trainDF.shape)
-    trainDF = shuffle(trainDF)
-
-    datagen = keras.preprocessing.image.ImageDataGenerator(
-        rescale=1./255, 
-        horizontal_flip=True, 
-        vertical_flip=True,
-        rotation_range=360,
-        shear_range=10,
-        #zoom_range=0.2
-    )
-    train_generator = datagen.flow_from_dataframe(
-        dataframe=trainDF,
-        x_col='image_name',
-        y_col='class_name',
-        class_mode='categorical',
-        target_size=IMG_SIZE,
-        batch_size=BATCHSIZE,
-        color_mode='grayscale'
-    )
-
-    cropped_test_path = os.path.join(card_path, "cropped_test")
-
-    TEST_ANNOTATIONS_FILE = os.path.join(card_path, 'annotations.csv')
-    testDF = pd.read_csv(TEST_ANNOTATIONS_FILE, names=['image_name', 'class_name']) 
-
-    test_generator = datagen.flow_from_dataframe(
-        dataframe=testDF,
-        x_col='image_name',
-        y_col='class_name',
-        class_mode='categorical',
-        target_size=IMG_SIZE,
-        batch_size=BATCHSIZE,
-        color_mode='grayscale'
-    )
-
-    return train_generator, test_generator
+test_generator = datagen.flow_from_dataframe(
+    dataframe=testDF,
+    x_col='image_name',
+    y_col='class_name',
+    class_mode='categorical',
+    target_size=IMG_SIZE,
+    batch_size=BATCHSIZE,
+    color_mode='grayscale'
+)
 
 
-# def plot_history(history, model_path):
-#
-#   fig, (ax1, ax2) = plt.subplots(2, tight_layout=True, figsize=(18, 9))
-#
-#   ax1.plot(history.history['loss'])
-#   ax1.plot(history.history['val_loss'])
-#   fig.suptitle('model train vs validation\n'+param_text)
-#   ax1.set(xlabel='epoch', ylabel='loss')
-#   ax1.legend(['train', 'validation'], loc='upper right')
-#
-#   ax2.plot(history.history['categorical_accuracy'])
-#   ax2.plot(history.history['val_categorical_accuracy'])
-#   ax2.set(xlabel='epoch', ylabel='accuracy')
-#   ax2.legend(['train', 'validation'], loc='upper right')
-#
-#   plot_path = os.path.join(model_path, "model_eval")
-#   fig.savefig(plot_path, format='png', dpi=600)
-#   plt.show()
+def plot_history(history, model_path):
 
+    fig, (ax1, ax2) = plt.subplots(2, tight_layout=True, figsize=(18, 9))
 
-def train_model(use_resnet_model = True):
-    train_generator, _ = setup_for_training()
-    
-    if use_resnet_model:
-        model = create_resnet_model()
-    else:
-        model = create_model()
+    ax1.plot(history.history['loss'])
+    ax1.plot(history.history['val_loss'])
+    fig.suptitle('model train vs validation\n')
+    ax1.set(xlabel='epoch', ylabel='loss')
+    ax1.legend(['train'], loc='upper right')
+    ax1.legend(['train', 'validation'], loc='upper right')
 
-    optimizer = optimizers.Adam(learning_rate=0.001)
-    model.compile(optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"])
-    # print(model.summary())
+    ax2.plot(history.history['accuracy'])
+    ax2.plot(history.history['val_accuracy'])
+    ax2.set(xlabel='epoch', ylabel='accuracy')
+    ax2.legend(['train'], loc='upper right')
+    ax2.legend(['train', 'validation'], loc='lower right')
 
-    model_name = "CardClassifier.h5"
-
-    if use_resnet_model:
-        model_name = "CardClassifier_ResNet.h5"
-
-    model_path = os.path.join(card_path, model_name)
-
-    STEP_SIZE_TRAIN=train_generator.n//train_generator.batch_size
-
-    history = model.fit(x=train_generator,
-                        steps_per_epoch=STEP_SIZE_TRAIN,
-                        epochs=EPOCHS,
-                        #validation_data=test_generator
-    )
-    model.save(model_path)
-    print("Saved model to: %s" % model_path)
-    #plot_history(history, model_path)
-
-
-def predict_model():
-    model = tf.keras.models.load_model(os.path.join(card_path, "CardClassifier_ResNet.h5"))
-    print(model.summary())
-
-    img_name = os.path.join(card_path, 'cropped_test', "8.jpg")
-    img = cv2.imread(img_name)
-    img = img/255.0
-
-    plt.axis('off')
-    plt.imshow(img)
+    plot_path = model_path[0:-3]
+    fig.savefig(plot_path+".png", format='png', dpi=600)
     plt.show()
 
-    img = img.reshape(-1,80,80,1)
 
-    prediction = model.predict(img)
-    print(prediction)
-    idx = np.argmax(prediction[0])
-    print(idx)
-    for key, value in labels_to_names.items():
-      if value == idx:
-        print(key)
-        break
+model = Sequential([
+    Conv2D(16, 3, padding='same', activation='relu', input_shape=(80, 80, 1)),
+    MaxPooling2D(),
+    Conv2D(32, 3, activation='relu'),
+    MaxPooling2D(),
+    Conv2D(64, 3, activation='relu'),
+    MaxPooling2D(),
+    Conv2D(64, 3, activation='relu'),
+    Flatten(),
+    Dense(100, activation='relu'),
+    Dropout(0.5),
+    Dense(52, activation='softmax')
+])
+
+print(model.summary())
+#sys.exit()
+
+def scheduler(epoch):
+  if epoch < 10:
+    return 0.001
+  else:
+    return 0.001 * tf.math.exp(0.1 * (10 - epoch))
+
+lr_callback = tf.keras.callbacks.LearningRateScheduler(scheduler)
+es_callback = tf.keras.callbacks.EarlyStopping(monitor="val_accuracy", min_delta=0.005, patience=2)
+
+optimizer = optimizers.Adam(learning_rate=0.001)
+model.compile(optimizer=optimizer,
+              loss="categorical_crossentropy", metrics=["accuracy"])
+
+model_path = snapshots_path
+model_name = os.path.join(model_path, "CardClassifier_small_Adam.h5")
+
+STEP_SIZE_TRAIN = train_generator.n//train_generator.batch_size
+
+history = model.fit(train_generator,
+                    steps_per_epoch=STEP_SIZE_TRAIN,
+                    epochs=EPOCHS,
+                    callbacks=[lr_callback],
+                    validation_data=test_generator
+                    )
+model.save(model_name)
+plot_history(history, model_name)
 
 
-train_model()
-predict_model()
+img_name = os.path.join(cropped_train_path, "0.jpg")
+img = cv2.imread(img_name, cv2.IMREAD_GRAYSCALE)
+img = img/255.0
+img = img.reshape(-1,80,80,1)
+prediction = model.predict(img)
+idx = np.argmax(prediction[0])
+for key, value in labels_to_names.items():
+    if value == idx:
+      print(key)
+      break
+
