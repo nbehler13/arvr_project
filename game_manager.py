@@ -15,18 +15,6 @@ class GameManager:
         self.card_margin = 5 # distance card refers to same box in next frame 
 
         for i in range(self.num_players):
-            if i == 1:
-                pos = (350, 60)
-                name_pos = (self.half_width+250, 50)
-            elif i == 2:
-                pos = (350, 350)
-                name_pos = (self.half_width+250, self.half_height+50)
-            elif i == 3:
-                pos = (20, 350)
-                name_pos = (250, self.half_height+50)
-            else:
-                pos = (20, 60)
-                name_pos = (250, 50)
             self.players.append(Player(i)) # instance of player 0, player 1, ..., player num_players
 
         self.available_cards = ['ah', 'kh', 'qh', 'jh', '10h', '9h', '8h', '7h', '6h', '5h', '4h', '3h', '2h',
