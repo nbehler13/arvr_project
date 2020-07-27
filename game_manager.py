@@ -13,6 +13,8 @@ class GameManager:
         self.card_buffer = {}
         self.buffer_counter = 0
         self.card_margin = 5 # distance card refers to same box in next frame 
+        self.new_round_counter = 0
+        self.show_new_round = True
 
         for i in range(self.num_players):
             self.players.append(Player(i)) # instance of player 0, player 1, ..., player num_players
@@ -21,6 +23,17 @@ class GameManager:
                                 'ac', 'kc', 'qc', 'jc', '10c', '9c', '8c', '7c', '6c', '5c', '4c', '3c', '2c',
                                 'as', 'ks', 'qs', 'js', '10s', '9s', '8s', '7s', '6s', '5s', '4s', '3s', '2s',
                                 'ad', 'kd', 'qd', 'jd', '10d', '9d', '8d', '7d', '6d', '5d', '4d', '3d', '2d']
+
+    def reset_round(self):
+        self.card_buffer = {}
+        self.buffer_counter = 0
+        self.new_round_counter = 0
+        self.show_new_round = True
+        self.available_cards = ['ah', 'kh', 'qh', 'jh', '10h', '9h', '8h', '7h', '6h', '5h', '4h', '3h', '2h',
+                                'ac', 'kc', 'qc', 'jc', '10c', '9c', '8c', '7c', '6c', '5c', '4c', '3c', '2c',
+                                'as', 'ks', 'qs', 'js', '10s', '9s', '8s', '7s', '6s', '5s', '4s', '3s', '2s',
+                                'ad', 'kd', 'qd', 'jd', '10d', '9d', '8d', '7d', '6d', '5d', '4d', '3d', '2d']
+
 
     def get_player_to_box(self, box):
         x = box[0] + (box[2] - box[0])/2 # Width direction
@@ -77,6 +90,13 @@ class GameManager:
 
 
     def update(self, boxes, labels, confis):
+        if not labels:
+            if self.new_round_counter > 2:
+                self.reset_round()
+            else:
+                self.new_round_counter += 1
+            return
+        self.show_new_round = False
         boxes, labels = self.buffer_cards(boxes, labels, confis)
         new_player_cards = [[] for _ in range(self.num_players)] # create [[], [], [], []]
         new_player_boxes = [[] for _ in range(self.num_players)]
@@ -93,18 +113,27 @@ class GameManager:
             
 
     def show_chance(self, image):
+        if self.show_new_round:
+            text_size, _ = cv2.getTextSize("New round", cv2.FONT_HERSHEY_COMPLEX,
+                fontScale=1.2, thickness=2)
+            cv2.putText(image, "New round", (int(self.half_width-text_size[0]/2), self.half_height), cv2.FONT_HERSHEY_COMPLEX,
+                fontScale=1.2, color=(167, 231, 54), thickness=2)  # color
+            return image
+
         for player in self.players:
             x, y = player.show_pos
             cv2.putText(image, "{}: {}".format(player.player_name, player.handvalue), (x, y), cv2.FONT_HERSHEY_COMPLEX,
-                fontScale=1, color=(255, 255, 0), thickness=1)  # show playername and handvalue
+                fontScale=0.8, color=(255, 255, 0), thickness=1)  # show playername and handvalue
             cv2.putText(image, "{}".format(player.handcards), (x, y+30), cv2.FONT_HERSHEY_COMPLEX,
-                fontScale=1, color=(255, 255, 0), thickness=1)  # show player handcards
+                fontScale=0.8, color=(255, 255, 0), thickness=1)  # show player handcards
             win = player.win_chance
+            on_point = player.right_chance
             if win > -1:
-                cv2.putText(image, str(win), (x, y+60), cv2.FONT_HERSHEY_COMPLEX,
-                    fontScale=1, color=(0, 255, 0), thickness=1)  # green color
-                cv2.putText(image, str(100-win), (x, y+90), cv2.FONT_HERSHEY_COMPLEX,
-                    fontScale=1, color=(0, 0, 255), thickness=1)  # red color
+                cv2.putText(image, "Draw card: {}".format(win), (x, y+60), cv2.FONT_HERSHEY_COMPLEX,
+                    fontScale=0.6, color=(0, 255, 0), thickness=1)  # green color
+            if on_point > -1:
+                cv2.putText(image, "Win chance: {}".format(on_point), (x, y+90), cv2.FONT_HERSHEY_COMPLEX,
+                    fontScale=0.6, color=(100, 200, 0), thickness=1)  # red color
             if player.handvalue == 21:
                 text_size, _ = cv2.getTextSize("{} won!!!".format(player.player_name), cv2.FONT_HERSHEY_COMPLEX,
                     fontScale=1.2, thickness=2)

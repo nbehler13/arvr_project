@@ -21,7 +21,7 @@ WIDTH = 1280#1920
 HEIGHT = 720#1080
 Manager = GameManager(WIDTH, HEIGHT)
 
-url = "http://192.168.1.61:8080/shot.jpg"
+url = "http://192.168.1.113:8080/shot.jpg"
 
 
 def show_webcam(mirror=False):
